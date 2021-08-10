@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import os
-import sentry_sdk
+#import sentry_sdk
 import dbus
 import logging
 import sys
@@ -14,7 +14,6 @@ import threading
 # From imports
 from time import sleep
 from RPi import GPIO
-from variant_definitions import variant_definitions
 
 # BLE Library
 from advertisement import Advertisement
@@ -32,16 +31,13 @@ import wifi_services_pb2
 from gpiozero import Button, LED
 
 # ET Phone Home
-variant = os.getenv('VARIANT')
 sentry_key = os.getenv('SENTRY_CONFIG')
 balena_id = os.getenv('BALENA_DEVICE_UUID')
 balena_app = os.getenv('BALENA_APP_NAME')
 uuids.FIRMWARE_VERSION = os.getenv('FIRMWARE_VERSION')
-sentry_sdk.init(sentry_key, environment=balena_app)
-sentry_sdk.set_user({"id": balena_id})
-sentry_sdk.set_context("variant", {variant})
-
-variantDetails = variant_definitions[variant]
+#sentry_sdk.init(sentry_key, environment=balena_app)
+#sentry_sdk.set_user({"id": balena_id})
+#sentry_sdk.set_context("variant", {variant})
 
 # Disable sudo for nmcli
 nmcli.disable_use_sudo()
@@ -76,9 +72,8 @@ logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 class ConfigAdvertisement(Advertisement):
     # BLE advertisement
     def __init__(self, index):
-        global variantDetails
         Advertisement.__init__(self, index, "peripheral")
-        variant = variantDetails['APPNAME']
+        variant = "Pycom Pygate Helium"
         macAddr = open("/sys/class/net/eth0/address").readline()\
             .strip().replace(":", "")[-6:].upper()
         localName = "Nebra %s Hotspot %s" % (variant, macAddr)
