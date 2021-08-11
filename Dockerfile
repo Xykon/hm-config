@@ -1,38 +1,66 @@
-#Nebra Helium Hotspot - BTLE Configuration Software Container
-#(C) Nebra LTD. 2021
-#Licensed under the MIT License.
+FROM balenalib/raspberry-pi-debian:buster-build as buildstep
+
+# hadolint ignore=DL3018
+
+
+RUN \
+apt-get update && \
+DEBIAN_FRONTEND="noninteractive" \
+TZ="Europe/London" \
+apt-get -y install \
+erlang-nox=1:21.2.6+dfsg-1 \
+erlang-dev=1:21.2.6+dfsg-1 \
+git=1:2.20.1-2+deb10u3 \
+libdbus-1-dev \
+gcc \
+g++ \
+curl \
+--no-install-recommends && \
+apt-get autoremove -y &&\
+apt-get clean && \
+rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/cmake
+
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz | tar -xvzf -
+
+WORKDIR /opt/cmake/cmake-3.21.1
+
+RUN ./bootstrap
+
+RUN make
+
+RUN make install
+
+WORKDIR /opt/gateway-config
+
+RUN git clone https://github.com/helium/gateway-config.git
+
+
+WORKDIR /opt/gateway-config/gateway-config
+
+RUN DEBUG=1 make
+RUN DEBUG=1 make release
 
 FROM balenalib/raspberry-pi-debian:buster-run
 
-WORKDIR /opt/
-
-COPY requirements.txt requirements.txt
-
+# hadolint ignore=DL3018
 RUN \
-    apt-get update && \
-    DEBIAN_FRONTEND="noninteractive" \
-    TZ="Europe/London" \
-        apt-get -y install \
-            python3-minimal=3.7.3-1 \
-            bluez=5.50-1.2~deb10u1+rpt2 \
-            libdbus-1-3=1.12.20-0+deb10u1 \
-            python3-pip=18.1-5+rpt1 \
-            network-manager=1.14.6-2+deb10u1 \
-            python3-gi=3.30.4-1 \
-            wget=1.20.1-1.1 \
-            --no-install-recommends && \
-        pip3 install --no-cache-dir -r requirements.txt &&\
-        apt-get purge python3-pip -y &&\
-        apt-get autoremove -y &&\
-        apt-get clean && \
-        rm -rf /var/lib/apt/lists/*
+apt-get update && \
+DEBIAN_FRONTEND="noninteractive" \
+TZ="Europe/London" \
+apt-get -y install \
+erlang-nox=1:21.2.6+dfsg-1 \
+python3-minimal=3.7.3-1 \
+dbus \
+--no-install-recommends && \
+apt-get autoremove -y &&\
+apt-get clean && \
+rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/
+WORKDIR /opt/gateway-config
 
-COPY start-gateway-config.sh start-gateway-config.sh
+COPY --from=buildstep /opt/gateway-config/gateway-config/_build/prod/rel/gateway_config .
+COPY --from=buildstep /opt/gateway-config/gateway-config/_build/prod/rel/gateway_config/config/com.helium.Config.conf /etc/dbus-1/system.d/
 
-COPY config-python/ config-python/
-
-WORKDIR /opt/config-python/
-
-ENTRYPOINT ["sh", "/opt/start-gateway-config.sh"]
+ENTRYPOINT ["sh"]
