@@ -22,23 +22,18 @@ rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/cmake
 
-RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz | tar -xvzf -
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.21.4/cmake-3.21.4-linux-aarch64.tar.gz | tar -xvzf -
 
-WORKDIR /opt/cmake/cmake-3.21.1
-
-RUN ./bootstrap
-
-RUN make
-
-RUN make install
-
-WORKDIR /opt/gateway-config
+ENV PATH=/opt/cmake/cmake-3.21.4-linux-aarch64/bin:$PATH
 
 RUN git clone https://github.com/helium/gateway-config.git
 
+RUN echo "***** $PATH *****"
+RUN echo "CMAKE version: $(cmake --version)"
 
 WORKDIR /opt/gateway-config/gateway-config
 
+RUN cmake .
 RUN DEBUG=1 make
 RUN DEBUG=1 make release
 
